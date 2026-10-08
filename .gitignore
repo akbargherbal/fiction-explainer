@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+
+# Style excerpts are other people's copyrighted text: analysed locally, never pushed.
+styles/*/
+!styles/README.md
+
+# Code the fact-checker runs while verifying claims
+runs/*/scratch/

@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "WebSearch",
+      "WebFetch",
+      "Write(runs/**)",
+      "Edit(runs/**)",
+      "Bash(python tools/new_run.py:*)",
+      "Bash(python tools/run_status.py:*)",
+      "Bash(python tools/number_paragraphs.py:*)",
+      "Bash(python tools/slop_lint.py:*)",
+      "Bash(python tools/style_profile.py:*)",
+      "Bash(python tools/lock_check.py:*)",
+      "Bash(python tools/archive_notes.py:*)",
+      "Bash(python tools/notes_digest.py:*)"
+    ]
+  }
+}
