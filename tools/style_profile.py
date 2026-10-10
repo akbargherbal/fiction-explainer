@@ -2,13 +2,17 @@
 """Measure style from text, and compare a draft against a reference corpus.
 
 Usage:
-    python tools/style_profile.py profile styles/<slug> [--json] [--out stats.json]
+    python tools/style_profile.py profile styles/<slug> [--dialogue] [--json] [--out stats.json]
     python tools/style_profile.py compare --reference styles/<slug> --draft drafts/draft_v1.md
-                                          [--tolerance 0.35] [--json]
+                                          [--dialogue] [--tolerance 0.35] [--json]
 
 PATH may be a file or a folder of .txt/.md files. Metrics are cheap proxies for voice (rhythm,
 punctuation habits, dialogue share, person, tense hint, lexical variety). They catch drift, not voice.
 Dialogue detection assumes double quotes ("..." or curly quotes).
+
+``--dialogue`` is for corpora that are dialogue only (subtitles, screenplays) and carry no quote
+marks: each non-empty line counts as one utterance, the utterance length replaces sentence length,
+and dialogue share is 1.0. Pass it for the reference corpus; leave it off for a prose draft.
 """
 from __future__ import annotations
 
@@ -79,7 +83,9 @@ def mattr(tokens: list, window: int = 250) -> float:
     return total / num
 
 
-def compute(text: str) -> dict:
+def compute(text: str, as_dialogue: bool = False) -> dict:
+    """Measure a text. With ``as_dialogue`` (subtitles, screenplays) each
+    non-empty line is one utterance and the whole text counts as dialogue."""
     prose = mdutil.prose_text(text)
     toks = mdutil.words(prose)
     n = len(toks)
@@ -89,14 +95,21 @@ def compute(text: str) -> dict:
     base = [t.split("'")[0] for t in low]
     k = 1000.0 / n
 
-    pairs = [(s, mdutil.words(s)) for s in mdutil.sentences(prose)]
+    if as_dialogue:
+        pairs = [(ln, mdutil.words(ln)) for ln in prose.splitlines() if ln.strip()]
+        paras = [len(w) for _, w in pairs]
+    else:
+        pairs = [(s, mdutil.words(s)) for s in mdutil.sentences(prose)]
+        paras = [len(mdutil.words(p)) for p in re.split(r"\n\s*\n", prose) if p.strip()]
     pairs = [(s, w) for s, w in pairs if w]
     lens = sorted(len(w) for _, w in pairs)
-    paras = [len(mdutil.words(p)) for p in re.split(r"\n\s*\n", prose) if p.strip()]
     paras = [x for x in paras if x]
 
-    dialogue = mdutil.DIALOGUE_RE.findall(prose)
-    dlg_words = sum(len(mdutil.words(d)) for d in dialogue)
+    if as_dialogue:
+        dlg_words = n
+    else:
+        dialogue = mdutil.DIALOGUE_RE.findall(prose)
+        dlg_words = sum(len(mdutil.words(d)) for d in dialogue)
     narration = mdutil.DIALOGUE_RE.sub(" ", prose)
     nbase = [w.lower().replace("’", "'").split("'")[0] for w in mdutil.words(narration)]
     past = sum(1 for w in nbase if w in PAST)
@@ -144,6 +157,7 @@ def compute(text: str) -> dict:
         "words": n,
         "sentences": len(pairs),
         "paragraphs": len(paras),
+        "dialogue": as_dialogue,
         "metrics": {key: (round(v, 4) if v is not None else None) for key, v in metrics.items()},
         "top_words": top.most_common(25),
     }
@@ -174,6 +188,9 @@ def compare(ref: dict, draft: dict, tol: float = 0.35) -> list:
 
 def render_profile(stats: dict, label: str, nfiles: int) -> str:
     out = [f"# Style profile (measured) — {label}", ""]
+    if stats.get("dialogue"):
+        out.append("_Dialogue mode: each non-empty line is one utterance; dialogue share is 1.0._")
+        out.append("")
     out.append(f"Words {stats['words']} · sentences {stats['sentences']} · paragraphs {stats['paragraphs']} · files {nfiles}")
     out += ["", "| Metric | Value |", "|---|---|"]
     for key, v in stats["metrics"].items():
@@ -184,11 +201,14 @@ def render_profile(stats: dict, label: str, nfiles: int) -> str:
     return "\n".join(out)
 
 
-def render_compare(rows: list, ref_words: int, draft_words: int, tol: float) -> str:
+def render_compare(rows: list, ref_words: int, draft_words: int, tol: float, dialogue: bool = False) -> str:
     out = ["# Style compare (draft vs reference)", ""]
-    out.append(f"Reference {ref_words} words · draft {draft_words} words · tolerance ±{tol:.0%}")
+    out.append(f"Reference {ref_words} words · draft {draft_words} words · tolerance ±{tol:.0%}"
+               + (" · reference read in dialogue mode" if dialogue else ""))
     if draft_words < MIN_WORDS:
         out.append(f"_Draft under {MIN_WORDS} words: comparison is unreliable._")
+    if dialogue:
+        out.append("_Reference is dialogue-only: sentence metrics describe utterances, not prose sentences._")
     out += ["", "| Metric | Reference | Draft | Δ% | Flag |", "|---|---|---|---|---|"]
     for r in rows:
         out.append(f"| {r['metric']} | {r['reference']:.3f} | {r['draft']:.3f} | {r['delta_pct']:+.0f}% | {r['flag']} |")
@@ -203,11 +223,13 @@ def main(argv=None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("profile")
     p.add_argument("path")
+    p.add_argument("--dialogue", action="store_true", help="each non-empty line is one utterance")
     p.add_argument("--json", action="store_true")
     p.add_argument("--out")
     c = sub.add_parser("compare")
     c.add_argument("--reference", required=True)
     c.add_argument("--draft", required=True)
+    c.add_argument("--dialogue", action="store_true", help="read the reference as dialogue-only")
     c.add_argument("--tolerance", type=float, default=0.35)
     c.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)
@@ -215,7 +237,7 @@ def main(argv=None) -> int:
     try:
         if args.cmd == "profile":
             text, nfiles = load_corpus(args.path)
-            stats = compute(text)
+            stats = compute(text, as_dialogue=args.dialogue)
             if args.out:
                 Path(args.out).parent.mkdir(parents=True, exist_ok=True)
                 Path(args.out).write_text(json.dumps(stats, indent=2), encoding="utf-8")
@@ -230,12 +252,12 @@ def main(argv=None) -> int:
         if not draft_path.is_file():
             print(f"error: no such file: {draft_path}", file=sys.stderr)
             return 2
-        ref, dr = compute(ref_text), compute(mdutil.read_text(draft_path))
+        ref, dr = compute(ref_text, as_dialogue=args.dialogue), compute(mdutil.read_text(draft_path))
         rows = compare(ref, dr, args.tolerance)
         if args.json:
             print(json.dumps(rows, indent=2))
         else:
-            print(render_compare(rows, ref["words"], dr["words"], args.tolerance))
+            print(render_compare(rows, ref["words"], dr["words"], args.tolerance, args.dialogue))
         return 0
     except (FileNotFoundError, ValueError) as e:
         print(f"error: {e}", file=sys.stderr)

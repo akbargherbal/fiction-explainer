@@ -223,6 +223,46 @@ class TestStyleProfile(TmpCase):
         self.assertIn("no .txt/.md excerpts", err)
 
 
+class TestStyleProfileDialogue(TmpCase):
+    DIALOGUE = (
+        "HELLO THERE FRIEND HOW ARE YOU\n"
+        "Shut up, Meg\n"
+        "I like eating red carpet\n"
+        "No, you shut up, Meg\n"
+    ) * 30
+
+    def test_lines_are_utterances_and_share_is_one(self):
+        s = style_profile.compute(self.DIALOGUE, as_dialogue=True)
+        self.assertTrue(s["dialogue"])
+        self.assertEqual(s["metrics"]["dialogue_share"], 1.0)
+        self.assertEqual(s["sentences"], 120)
+        self.assertGreater(s["metrics"]["sent_mean"], 3)
+        self.assertLess(s["metrics"]["sent_mean"], 7)
+
+    def test_default_mode_is_unchanged(self):
+        t = '"Hello there my friend." He nodded and walked away from the door slowly.'
+        s = style_profile.compute(t)
+        self.assertFalse(s["dialogue"])
+        self.assertGreater(s["metrics"]["dialogue_share"], 0.3)
+
+    def test_cli_dialogue_profile_and_compare(self):
+        ref_dir = self.tmp / "styles" / "family-guy"
+        self.write("styles/family-guy/excerpt.txt", self.DIALOGUE)
+        out = self.tmp / "stats.json"
+        code, stdout, _ = run_cli(style_profile.main,
+                                  ["profile", str(ref_dir), "--dialogue", "--out", str(out)])
+        self.assertEqual(code, 0)
+        self.assertIn("Dialogue mode", stdout)
+        self.assertEqual(json.loads(out.read_text())["metrics"]["dialogue_share"], 1.0)
+        draft = self.write("d.md", "# T\n\n" + self.SHORT)
+        code, stdout, _ = run_cli(style_profile.main, [
+            "compare", "--reference", str(ref_dir), "--draft", str(draft), "--dialogue"])
+        self.assertEqual(code, 0)
+        self.assertIn("dialogue mode", stdout)
+
+    SHORT = "He ran. She hid. They waited. The rain fell. Nobody spoke. It ended. " * 60
+
+
 class TestLockCheck(TmpCase):
     def test_check_ok_missing_unmarked(self):
         old = "One.\n\n<!-- KEEP -->Two stays.<!-- /KEEP -->\n\nThree."

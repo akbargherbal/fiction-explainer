@@ -1,0 +1,135 @@
+{
+  "words": 14366,
+  "sentences": 2159,
+  "paragraphs": 2159,
+  "dialogue": true,
+  "metrics": {
+    "sent_mean": 6.654,
+    "sent_median": 6,
+    "sent_stdev": 3.2716,
+    "sent_p90": 11.0,
+    "short_sent_share": 0.5007,
+    "long_sent_share": 0.0,
+    "para_mean": 6.654,
+    "para_median": 6,
+    "dialogue_share": 1.0,
+    "commas_per_1k": 84.2266,
+    "semicolons_per_1k": 0.0,
+    "colons_per_1k": 3.6893,
+    "em_dashes_per_1k": 0.0,
+    "questions_per_1k": 27.1474,
+    "exclamations_per_1k": 16.4277,
+    "ellipses_per_1k": 4.7334,
+    "parens_per_1k": 9.1188,
+    "first_person_per_1k": 71.4186,
+    "second_person_per_1k": 48.1693,
+    "ly_adverbs_per_1k": 10.0237,
+    "past_tense_hint": 0.4372,
+    "conj_start_share": 0.0816,
+    "pronoun_start_share": 0.1919,
+    "the_start_share": 0.0099,
+    "mattr_250": 0.6345
+  },
+  "top_words": [
+    [
+      "know",
+      94
+    ],
+    [
+      "right",
+      82
+    ],
+    [
+      "well",
+      67
+    ],
+    [
+      "yeah",
+      60
+    ],
+    [
+      "peter",
+      54
+    ],
+    [
+      "stewie",
+      46
+    ],
+    [
+      "time",
+      43
+    ],
+    [
+      "chris",
+      43
+    ],
+    [
+      "good",
+      41
+    ],
+    [
+      "brian",
+      40
+    ],
+    [
+      "think",
+      36
+    ],
+    [
+      "want",
+      36
+    ],
+    [
+      "okay",
+      35
+    ],
+    [
+      "look",
+      34
+    ],
+    [
+      "gonna",
+      34
+    ],
+    [
+      "come",
+      33
+    ],
+    [
+      "lois",
+      33
+    ],
+    [
+      "back",
+      29
+    ],
+    [
+      "going",
+      27
+    ],
+    [
+      "sorry",
+      27
+    ],
+    [
+      "really",
+      26
+    ],
+    [
+      "guys",
+      24
+    ],
+    [
+      "griffin",
+      22
+    ],
+    [
+      "hell",
+      21
+    ],
+    [
+      "great",
+      21
+    ]
+  ]
+}
