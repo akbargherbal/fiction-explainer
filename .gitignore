@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 .venv/
 .DS_Store
+*:Zone.Identifier
 
 # Style excerpts are other people's copyrighted text: analysed locally, never pushed.
 styles/*/
